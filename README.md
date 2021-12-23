@@ -28,7 +28,7 @@ Activer votre environnement
 
 ## Utilisation
 
-    python xlsx2csv.py -f path/to/somefile.xlsx
+    python xlsx2csv.py path/to/somefile.xlsx
 
 Par défaut 
 
