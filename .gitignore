@@ -116,6 +116,6 @@ cython_debug/
 .idea/
 
 src/csv/*
-src/*.xslsx
-src/*.xslsm
-src/*.xsls
+src/*.xlsx
+src/*.xlsm
+src/*.xls
