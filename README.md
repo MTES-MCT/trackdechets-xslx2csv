@@ -22,6 +22,10 @@ Cloner le projet et installer les dépendances
 
     poetry install
 
+Activer votre environnement
+    
+    poetry shell
+
 ## Utilisation
 
     python xlsx2csv.py -f path/to/somefile.xlsx
