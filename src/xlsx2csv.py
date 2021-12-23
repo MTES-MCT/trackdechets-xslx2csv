@@ -75,30 +75,26 @@ class RichHelp(click.Command):
 @click.argument("file", default="file.xlsx")
 def parse_validate_convert(file):
     wb = load_xlsx(file)
-    # etabs
+
     ws_etablissements = wb.worksheets[0]
+    ws_roles = wb.worksheets[1]
 
     etab_rows = EtabRows.from_worksheet(ws_etablissements)
 
     etab_rows.validate()
 
-    etab_rows.show_errors()
-
-    ws_roles = wb.worksheets[1]
     role_rows = RoleRows.from_worksheet(ws_roles)
 
     role_rows.validate(etab_rows.sirets())
-    # role_rows.as_table()
-    # role_rows.show_errors()
 
     if etab_rows.is_valid:
-        console.print("[blue underline]Etab tab is valid")
+        console.print(":thumbs_up: [green bold]Etab tab is valid")
     else:
-        console.print("[red]Etablissement tab has errors")
+        console.print(":thumbs_down: [red]Etablissement tab has errors")
     if role_rows.is_valid:
-        console.print("[blue underline]Role tab is valid")
+        console.print(":thumbs_up: [green bold]Role tab is valid")
     else:
-        console.print("[red]Role tab has errors")
+        console.print(":thumbs_down: [red]Role tab has errors")
 
     menu_choices = []
 

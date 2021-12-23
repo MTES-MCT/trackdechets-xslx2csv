@@ -22,24 +22,83 @@ phone_re = re.compile(r"^(0[1-9])(?:[ _.-]?(\d{2})){4}$")
 
 console = Console()
 
+ERROR_FIELD = "field"
+ERROR_SIRET_MISSING_FROM_ETAB = "siret_missing_from_etab"
+ERROR_TYPES = [ERROR_FIELD, ERROR_SIRET_MISSING_FROM_ETAB]
+
+
+class BaseRow:
+    @property
+    def is_valid(self):
+        if not self.validated:
+            raise Exception("Not validated yet")
+        return not self.errors
+
+    def siret_is_valid(self):
+        return len(str(self.siret)) == 14
+
+    def show_errors(self):
+        for e in self.errors:
+            console.print(e.as_str())
+
+    @classmethod
+    def from_dict(cls, idx, the_dict):
+        if all([not v for v in the_dict.values()]):  # skip empty rows
+            return
+
+        return cls(**the_dict, index=idx)
+
+
+class BaseRows:
+    def __iter__(self):
+        yield from self.rows
+
+    def append(self, row):
+        if not self.header:
+            self.header = row
+        else:
+            self.rows.append(row)
+
+    def make_messages(self):
+        for row in self.rows:
+            for e in row.errors:
+                console.print(e.as_message())
+
+    def show_errors(self):
+        for idx, row in enumerate(self):
+            row.show_errors()
+
 
 @attr.s()
 class RowError:
     row_number = attr.ib()
     field_name = attr.ib()
     field_value = attr.ib()
-    info = attr.ib(default="")
+    error_type = attr.ib(default=ERROR_FIELD)
+
     tab = attr.ib(default="")
+
+    @error_type.validator
+    def _check_error_type(self, attribute, value):
+        return value in ERROR_TYPES
 
     def as_str(self):
         return f"{self.field_name.capitalize()} error on row n°{self.row_number} value={self.field_value}"
 
+    def message_error_field(self):
+        return f"{self.tab.capitalize()} Ligne {self.row_number} Colonne {self.field_name}: {self.field_value} est incorrect"
+
+    def message_error_missing_siret(self):
+        return f"Rôles Ligne {self.row_number} Colonne siret: {self.field_value} est absent de l'onglet établissements"
+
     def as_message(self):
-        return f"{self.tab} {self.field_name.capitalize()} error on row n°{self.row_number} value={self.field_value} {self.info}"
+        if self.error_type == ERROR_SIRET_MISSING_FROM_ETAB:
+            return self.message_error_missing_siret()
+        return self.message_error_field()
 
 
 @attr.s()
-class EtabRow:
+class EtabRow(BaseRow):
     index = attr.ib()
     siret = attr.ib(default="")
     gerepid = attr.ib(default="")
@@ -51,12 +110,7 @@ class EtabRow:
 
     errors = attr.ib(default=attr.Factory(list))
     validated = attr.ib(default=False)
-
-    @property
-    def is_valid(self):
-        if not self.validated:
-            raise Exception("Not validated yet")
-        return not self.errors
+    tab_name = "Établissements"
 
     def as_str(self):
         return f"{self.siret} {self.givenName} {self.contactEmail}"
@@ -87,9 +141,6 @@ class EtabRow:
         ]
         return format_csv_row(quoted)
 
-    def siret_is_valid(self):
-        return len(str(self.siret)) == 14
-
     def company_types_are_valid(self):
         return all([c_type in COMPANY_TYPES for c_type in self.companyTypes])
 
@@ -115,35 +166,46 @@ class EtabRow:
     def validate(self):
 
         if not self.siret_is_valid():
-            self.errors.append(RowError(self.index, "siret", self.siret, tab="etab"))
+            self.errors.append(
+                RowError(
+                    row_number=self.index,
+                    field_name="siret",
+                    field_value=self.siret,
+                    tab=self.tab_name,
+                )
+            )
         if not self.company_types_are_valid():
             self.errors.append(
-                RowError(self.index, "companyTypes", self.companyTypes, tab="etab")
+                RowError(
+                    row_number=self.index,
+                    field_name="companyTypes",
+                    field_value=self.companyTypes,
+                    tab=self.tab_name,
+                )
             )
         if not self.phone_number_is_valid():
             self.errors.append(
-                RowError(self.index, "contactPhone", self.contactPhone, tab="etab")
+                RowError(
+                    row_number=self.index,
+                    field_name="contactPhone",
+                    field_value=self.contactPhone,
+                    tab=self.tab_name,
+                )
             )
         if not self.email_is_valid():
             self.errors.append(
-                RowError(self.index, "contactEmail", self.contactEmail, tab="etab")
+                RowError(
+                    row_number=self.index,
+                    field_name="contactEmail",
+                    field_value=self.contactEmail,
+                    tab=self.tab_name,
+                )
             )
         self.validated = True
 
-    @classmethod
-    def from_dict(cls, idx, the_dict):
-        if all([not v for v in the_dict.values()]):  # skip empty rows
-            return
-
-        return cls(**the_dict, index=idx)
-
-    def show_errors(self):
-        for e in self.errors:
-            console.print(e.as_str())
-
 
 @attr.s()
-class EtabRows:
+class EtabRows(BaseRows):
     header = attr.ib(default="")
     rows = attr.ib(default=attr.Factory(list))
     is_valid = attr.ib(default=False)
@@ -156,9 +218,6 @@ class EtabRows:
         else:
             self.rows.append(row)
 
-    def __iter__(self):
-        yield from self.rows
-
     def sirets(self):
         return list(set([item.siret for item in self if item.siret]))
 
@@ -168,10 +227,6 @@ class EtabRows:
             row.validate()
             if not row.is_valid:
                 self.is_valid = False
-
-    def show_errors(self):
-        for idx, row in enumerate(self):
-            row.show_errors()
 
     def as_csv(self):
         ret = []
@@ -189,11 +244,6 @@ class EtabRows:
             table.add_row(*row.as_list())
         console.print(table)
 
-    def make_messages(self):
-        for row in self.rows:
-            for e in row.errors:
-                console.print(e.as_message())
-
     @classmethod
     def from_worksheet(cls, worksheet):
         etab_rows = []
@@ -210,19 +260,14 @@ class EtabRows:
 
 
 @attr.s()
-class RoleRow:
+class RoleRow(BaseRow):
     index = attr.ib()
     siret = attr.ib()
     email = attr.ib()
     role = attr.ib()
     errors = attr.ib(default=attr.Factory(list))
     validated = attr.ib(default=False)
-
-    @property
-    def is_valid(self):
-        if not self.validated:
-            raise Exception("Not validated yet")
-        return not self.errors
+    tab_name = "Rôles"
 
     def as_str(self):
         return f"{self.siret} {self.role} {self.email}"
@@ -248,10 +293,6 @@ class RoleRow:
     def role_is_valid(self):
         return self.role in ["MEMBER", "ADMIN"]
 
-    def siret_is_valid(self):
-
-        return len(str(self.siret)) == 14
-
     def siret_belongs_to(self, etab_sirets):
         return self.siret in etab_sirets
 
@@ -272,50 +313,52 @@ class RoleRow:
 
     def validate(self, etab_sirets):
         if not self.role_is_valid():
-            self.errors.append(RowError(self.index, "role", self.role, tab="roles"))
+            self.errors.append(
+                RowError(
+                    row_number=self.index,
+                    field_name="role",
+                    field_value=self.role,
+                    tab=self.tab_name,
+                )
+            )
         if not self.siret_is_valid():
-            self.errors.append(RowError(self.index, "siret", self.siret, tab="roles"))
+            self.errors.append(
+                RowError(
+                    row_number=self.index,
+                    field_name="siret",
+                    field_value=self.siret,
+                    tab=self.tab_name,
+                )
+            )
         if not self.siret_belongs_to(etab_sirets):
             self.errors.append(
                 RowError(
-                    self.index,
-                    "siret",
-                    self.siret,
-                    "absent de l'onglet roles",
+                    row_number=self.index,
+                    field_name="siret",
+                    field_value=self.siret,
                     tab="roles",
+                    error_type=ERROR_SIRET_MISSING_FROM_ETAB,
                 )
             )
         if not self.email_is_valid():
-            self.errors.append(RowError(self.index, "email", self.email, tab="roles"))
+            self.errors.append(
+                RowError(
+                    row_number=self.index,
+                    field_name="email",
+                    field_value=self.email,
+                    tab=self.tab_name,
+                )
+            )
         self.validated = True
-
-    @classmethod
-    def from_dict(cls, idx, the_dict):
-        if all([not v for v in the_dict.values()]):
-            return
-        return cls(**the_dict, index=idx)
-
-    def show_errors(self):
-        for e in self.errors:
-            console.print(e.as_str())
 
 
 @attr.s()
-class RoleRows:
+class RoleRows(BaseRows):
     header = attr.ib(default="")
     rows = attr.ib(default=attr.Factory(list))
 
     is_valid = attr.ib(default=False)
     verbose_errors = attr.ib(default=attr.Factory(list))
-
-    def append(self, row):
-        if not self.header:
-            self.header = row
-        else:
-            self.rows.append(row)
-
-    def __iter__(self):
-        yield from self.rows
 
     def sirets(self):
         return list(set([item.siret for item in self if item.siret]))
@@ -335,10 +378,6 @@ class RoleRows:
             if not row.is_valid:
                 self.is_valid = False
 
-    def show_errors(self):
-        for idx, row in enumerate(self):
-            row.show_errors()
-
     def as_table(self):
         table = Table(show_header=True, header_style="bold magenta")
         table.add_column("N°")
@@ -347,19 +386,6 @@ class RoleRows:
         for row in self:
             table.add_row(*row.as_list())
         console.print(table)
-
-    def make_messages__(self):
-        if not self.verbose_errors:
-            return
-        console.print("Roles: ")
-        for error in set(self.verbose_errors):
-            console.print(error)
-
-    def make_messages(self):
-
-        for row in self.rows:
-            for e in row.errors:
-                console.print(e.as_message())
 
     @classmethod
     def from_worksheet(cls, worksheet):
