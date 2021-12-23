@@ -16,8 +16,7 @@ from .constants import (
     ROLE_FIELDS,
     VALID_STR,
 )
-from .helpers import dict_read
-from .utils import format_csv_row, quote
+from .helpers import dict_read, format_csv_row, quote
 
 phone_re = re.compile(r"^(0[1-9])(?:[ _.-]?(\d{2})){4}$")
 

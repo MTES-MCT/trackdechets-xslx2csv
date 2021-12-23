@@ -39,6 +39,7 @@ help_txt = """
         - remove unwanted extra surrounding spaces
         - remove blank spaces or dots sometimes inserted in sirets for readability
         - add 0 to phone numbers if missing due to excel number formatting
+        - format phones
         - format companyTypes to be ingested by the Trackdéchets script
         - remove funky space chars
         - uppercase roles
