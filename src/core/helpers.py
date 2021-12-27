@@ -31,7 +31,13 @@ def process_field(value, field_name):
         return str(value).upper().strip()
     if field_name == "contactPhone":
         cleaned = (
-            str(value).replace(" ", "").replace("/", "").replace("\u200b", "").strip()
+            str(value)
+            .replace(" ", "")
+            .replace("/", "")
+            .replace("\u200b", "")
+            .replace(".", "")
+            .replace(",", "")
+            .strip()
         )
 
         # is 0 missing due to any excel joke?
