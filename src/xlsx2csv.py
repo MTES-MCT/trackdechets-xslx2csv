@@ -125,7 +125,7 @@ def parse_validate_convert(file):
         role_rows.as_table()
 
     if action == "export":
-        console.print("[blue underline]Exporting")
+        console.print(":weight_lifter:[green] Exporting")
         with open("csv/etablissements.csv", "w", newline="") as csvfile:
             for row in etab_rows.as_csv():
                 csvfile.write(row)
@@ -133,8 +133,8 @@ def parse_validate_convert(file):
             for row in role_rows.as_csv():
                 csvfile.write(row)
 
-        console.print("[blue underline]Done")
-    console.print("[blue underline]Exiting")
+        console.print(":thumbs_up:[green] Done")
+    console.print(":wave:[green] Exiting")
 
 
 if __name__ == "__main__":
