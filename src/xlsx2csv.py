@@ -53,6 +53,7 @@ help_txt = """
         - phones are valid (national format, with spaces, -, / or nothing) eg. 06-12-34-56-78
         - company types are valid
         - roles are valid
+        - sirets from etablissemnt tabs have at jeast one ADMIN from roles tab
         - :backhand_index_pointing_right: verification in sirene database is not performed
     :thumbs_up: [red]If validation fails[/red], menu allows you to generate a french digest to send back to user who sent the file iot help him to correct the mistakes.
     :thumbs_down: [green]If validation successes[/green], menu allows csv files generation, ready to be imported into Trackdéchets
@@ -86,6 +87,9 @@ def parse_validate_convert(file):
     role_rows = RoleRows.from_worksheet(ws_roles)
 
     role_rows.validate(etab_rows.sirets())
+
+    # This validation can occur when both tabs are already validated
+    etab_rows.validate_have_admin(role_rows.admin_sirets())
 
     if etab_rows.is_valid:
         console.print(":thumbs_up: [green bold]Etab tab is valid")

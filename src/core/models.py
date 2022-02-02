@@ -24,6 +24,7 @@ console = Console()
 
 ERROR_FIELD = "field"
 ERROR_SIRET_MISSING_FROM_ETAB = "siret_missing_from_etab"
+ERROR_SIRET_HAS_NO_ADMIN = "siret_has_no_admin"
 ERROR_TYPES = [ERROR_FIELD, ERROR_SIRET_MISSING_FROM_ETAB]
 
 
@@ -36,10 +37,6 @@ class BaseRow:
 
     def siret_is_valid(self):
         return len(str(self.siret)) == 14
-
-    def show_errors(self):
-        for e in self.errors:
-            console.print(e.as_str())
 
     @classmethod
     def from_dict(cls, idx, the_dict):
@@ -63,10 +60,16 @@ class BaseRows:
         for row in self.rows:
             for e in row.errors:
                 console.print(e.as_message())
+        for e in getattr(self, "errors", []):
+            console.print(e.as_message())
 
-    def show_errors(self):
-        for idx, row in enumerate(self):
-            row.show_errors()
+
+@attr.s()
+class NoAdminError:
+    siret = attr.ib()
+
+    def as_message(self):
+        return f"Le siret {self.siret} de l'onglet etablissements n'a pas d'ADMIN identifié dans l'onglet roles"
 
 
 @attr.s()
@@ -89,11 +92,16 @@ class RowError:
         return f"{self.tab.capitalize()} Ligne {self.row_number} Colonne {self.field_name}: {self.field_value} est incorrect"
 
     def message_error_missing_siret(self):
-        return f"Rôles Ligne {self.row_number} Colonne siret: {self.field_value} est absent de l'onglet établissements"
+        return f"Roles Ligne {self.row_number} Colonne siret: {self.field_value} est absent de l'onglet etablissements"
+
+    def message_error_siret_has_no_admin(self):
+        return f"{self.tab.capitalize()} Ligne {self.row_number} Le siret {self.field_value} n'a pas d'ADMIN identifié dans l'onglet roles"
 
     def as_message(self):
         if self.error_type == ERROR_SIRET_MISSING_FROM_ETAB:
             return self.message_error_missing_siret()
+        if self.error_type == ERROR_SIRET_HAS_NO_ADMIN:
+            return self.message_error_siret_has_no_admin()
         return self.message_error_field()
 
 
@@ -203,14 +211,25 @@ class EtabRow(BaseRow):
             )
         self.validated = True
 
+    def validate_has_admin(self, admin_sirets):
+        if self.siret not in admin_sirets:
+            self.errors.append(
+                RowError(
+                    row_number=self.index,
+                    field_name="siret",
+                    field_value=self.siret,
+                    tab=self.tab_name,
+                    error_type=ERROR_SIRET_HAS_NO_ADMIN,
+                )
+            )
+            self.validated = True
+
 
 @attr.s()
 class EtabRows(BaseRows):
     header = attr.ib(default="")
     rows = attr.ib(default=attr.Factory(list))
     is_valid = attr.ib(default=False)
-    siret_errors = attr.ib(default=attr.Factory(list))
-    verbose_errors = attr.ib(default=attr.Factory(list))
 
     def append(self, row):
         if not self.header:
@@ -219,12 +238,18 @@ class EtabRows(BaseRows):
             self.rows.append(row)
 
     def sirets(self):
-        return list(set([item.siret for item in self if item.siret]))
+        return list(set([row.siret for row in self if row.siret and row.is_valid]))
 
     def validate(self):
         self.is_valid = True
         for row in self:
             row.validate()
+            if not row.is_valid:
+                self.is_valid = False
+
+    def validate_have_admin(self, admin_sirets):
+        for row in self:
+            row.validate_has_admin(admin_sirets)
             if not row.is_valid:
                 self.is_valid = False
 
@@ -356,12 +381,13 @@ class RoleRow(BaseRow):
 class RoleRows(BaseRows):
     header = attr.ib(default="")
     rows = attr.ib(default=attr.Factory(list))
-
     is_valid = attr.ib(default=False)
-    verbose_errors = attr.ib(default=attr.Factory(list))
+    errors = attr.ib(default=attr.Factory(list))
 
-    def sirets(self):
-        return list(set([item.siret for item in self if item.siret]))
+    def admin_sirets(self):
+        return list(
+            set([row.siret for row in self if row.siret and row.role == "ADMIN"])
+        )
 
     def as_csv(self):
         ret = []
