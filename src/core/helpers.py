@@ -57,7 +57,7 @@ def clean_from_funky_chars(value):
     """Yes, our customers are that funny"""
     if not isinstance(value, str):
         return value
-    return value.replace("\u200b", "")
+    return value.replace("\u200b", "").replace("\xa0", "")
 
 
 def dict_read(row, fields_config):

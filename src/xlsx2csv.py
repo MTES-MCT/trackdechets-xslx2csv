@@ -89,7 +89,8 @@ def parse_validate_convert(file):
     role_rows.validate(etab_rows.sirets())
 
     # This validation can occur when both tabs are already validated
-    etab_rows.validate_have_admin(role_rows.admin_sirets())
+    if etab_rows.is_valid and role_rows.is_valid:
+        etab_rows.validate_have_admin(role_rows.admin_sirets())
 
     if etab_rows.is_valid:
         console.print(":thumbs_up: [green bold]Etab tab is valid")
