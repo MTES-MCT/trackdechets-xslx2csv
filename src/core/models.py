@@ -25,6 +25,7 @@ console = Console()
 ERROR_FIELD = "field"
 ERROR_SIRET_MISSING_FROM_ETAB = "siret_missing_from_etab"
 ERROR_SIRET_HAS_NO_ADMIN = "siret_has_no_admin"
+ERROR_DUPLICATE_ROLE = "duplicate_role"
 ERROR_TYPES = [ERROR_FIELD, ERROR_SIRET_MISSING_FROM_ETAB, ERROR_SIRET_HAS_NO_ADMIN]
 
 
@@ -97,11 +98,16 @@ class RowError:
     def message_error_siret_has_no_admin(self):
         return f"{self.tab.capitalize()} Ligne {self.row_number} Le siret {self.field_value} n'a pas d'ADMIN identifié dans l'onglet roles"
 
+    def message_error_duplicate_role(self):
+        return f"{self.tab.capitalize()} Ligne {self.row_number} Le rôle est dupliqué, un email ne peut être associé à un siret qu'un seule fois"
+
     def as_message(self):
         if self.error_type == ERROR_SIRET_MISSING_FROM_ETAB:
             return self.message_error_missing_siret()
         if self.error_type == ERROR_SIRET_HAS_NO_ADMIN:
             return self.message_error_siret_has_no_admin()
+        if self.error_type == ERROR_DUPLICATE_ROLE:
+            return self.message_error_duplicate_role()
         return self.message_error_field()
 
 
@@ -376,6 +382,17 @@ class RoleRow(BaseRow):
             )
         self.validated = True
 
+    def mark_as_duplicate(self):
+        self.errors.append(
+            RowError(
+                row_number=self.index,
+                field_name="email",
+                field_value=self.email,
+                tab=self.tab_name,
+                error_type=ERROR_DUPLICATE_ROLE,
+            )
+        )
+
 
 @attr.s()
 class RoleRows(BaseRows):
@@ -403,6 +420,23 @@ class RoleRows(BaseRows):
             row.validate(etab_sirets)
             if not row.is_valid:
                 self.is_valid = False
+
+        pairs = [f"{row.siret}_{row.email}" for row in self]
+        seen = set()
+
+        duplicates_idx = []
+        for idx, pair in enumerate(pairs):
+
+            if pair in seen:
+
+                duplicates_idx.append(idx)
+                self.rows[idx].mark_as_duplicate()
+
+            if pair not in seen:
+                seen.add(pair)
+
+        if duplicates_idx:
+            self.is_valid = False
 
     def as_table(self):
         table = Table(show_header=True, header_style="bold magenta")
