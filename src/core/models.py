@@ -26,7 +26,12 @@ ERROR_FIELD = "field"
 ERROR_SIRET_MISSING_FROM_ETAB = "siret_missing_from_etab"
 ERROR_SIRET_HAS_NO_ADMIN = "siret_has_no_admin"
 ERROR_DUPLICATE_ROLE = "duplicate_role"
-ERROR_TYPES = [ERROR_FIELD, ERROR_SIRET_MISSING_FROM_ETAB, ERROR_SIRET_HAS_NO_ADMIN]
+ERROR_TYPES = [
+    ERROR_FIELD,
+    ERROR_SIRET_MISSING_FROM_ETAB,
+    ERROR_SIRET_HAS_NO_ADMIN,
+    ERROR_DUPLICATE_ROLE,
+]
 
 
 class BaseRow:
@@ -421,9 +426,9 @@ class RoleRows(BaseRows):
             if not row.is_valid:
                 self.is_valid = False
 
+        # Check for duplicates
         pairs = [f"{row.siret}_{row.email}" for row in self]
         seen = set()
-
         duplicates_idx = []
         for idx, pair in enumerate(pairs):
 
