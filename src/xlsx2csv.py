@@ -1,10 +1,13 @@
 import io
+from pathlib import Path
 
 import click
 from InquirerPy import inquirer
 from InquirerPy.base.control import Choice
 from openpyxl import load_workbook
-from rich.console import Console
+from rich.console import Console, Group
+from rich.padding import Padding
+from rich.panel import Panel
 
 from core.models import EtabRows, RoleRows
 
@@ -131,6 +134,8 @@ def parse_validate_convert(file):
 
     if action == "export":
         console.print(":weight_lifter:[green] Exporting")
+        csv_dir = Path(".") / "csv"
+        csv_dir.mkdir(exist_ok=True)
         with open("csv/etablissements.csv", "w", newline="") as csvfile:
             for row in etab_rows.as_csv():
                 csvfile.write(row)
@@ -139,6 +144,33 @@ def parse_validate_convert(file):
                 csvfile.write(row)
 
         console.print(":thumbs_up:[green] Done")
+
+        panel_group = Group(
+            Padding(
+                "[green] scalingo --app trackdechets-production-api run --file ~/Desktop/csv bash",
+                (1, 4),
+            ),
+            Padding("[yellow] then : ", (1, 0)),
+            Padding("[green] tar -C /tmp -xvf /tmp/uploads/csv.tar.gz", (1, 4)),
+            Padding("[and] and : ", (1, 0)),
+            Padding(
+                "[green] node ./dist/src/users/bulk-creation/index.js --validateOnly --csvDir=/tmp/",
+                (1, 4),
+            ),
+            Padding("[or] and : ", (1, 0)),
+            Padding(
+                "[green] node ./dist/src/users/bulk-creation/index.js --csvDir=/tmp/",
+                (1, 4),
+            ),
+        )
+        console.print(
+            Panel(
+                panel_group,
+                title="[bold green]Now you may run these commands to import csvs",
+            )
+        )
+
+        # console.print(Panel("Hello, [red]World!"))
     console.print(":wave:[green] Exiting")
 
 
