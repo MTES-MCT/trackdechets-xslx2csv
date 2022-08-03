@@ -5,10 +5,13 @@ from email_validator import EmailNotValidError, validate_email
 from rich.console import Console
 from rich.table import Table
 
+from .communes import CODE_COMUNES
 from .constants import (
+    ANONYMOUS_ETABLISSMENTS_FIELDS,
     COMPANY_TYPES,
     ERROR_STR,
     ETABLISSMENTS_FIELDS,
+    MAX_ANON_ETAB_COL,
     MAX_ETAB_COL,
     MAX_ROLE_COL,
     MIN_ETAB_ROW,
@@ -17,6 +20,7 @@ from .constants import (
     VALID_STR,
 )
 from .helpers import dict_read, format_csv_row, quote
+from .naf import NAF_CODES
 
 phone_re = re.compile(r"^(0[1-9])(?:[ _.-]?(\d{2})){4}$")
 
@@ -114,6 +118,145 @@ class RowError:
         if self.error_type == ERROR_DUPLICATE_ROLE:
             return self.message_error_duplicate_role()
         return self.message_error_field()
+
+
+@attr.s()
+class AnonymousEtabRow(BaseRow):
+    index = attr.ib()
+    siret = attr.ib(default="")
+    name = attr.ib(default="")
+    address = attr.ib(default="")
+    codeNaf = attr.ib(default="")
+    codeCommune = attr.ib(default="")
+
+    errors = attr.ib(default=attr.Factory(list))
+    validated = attr.ib(default=False)
+    tab_name = "Établissements"
+
+    def as_str(self):
+        return f"{self.siret} {self.name} {self.siret}"
+
+    def name_is_valid(self):
+
+        return len(self.name) > 3
+
+    def address_is_valid(self):
+
+        return len(self.address) > 10
+
+    def naf_code_is_valid(self):
+
+        return self.codeNaf in NAF_CODES
+
+    def code_commune_is_valid(self):
+
+        return self.codeCommune in CODE_COMUNES
+
+    def validate(self):
+        if not self.siret_is_valid():
+            self.errors.append(
+                RowError(
+                    row_number=self.index,
+                    field_name="siret",
+                    field_value=self.siret,
+                    tab=self.tab_name,
+                )
+            )
+        if not self.name_is_valid():
+            self.errors.append(
+                RowError(
+                    row_number=self.index,
+                    field_name="name",
+                    field_value=self.name,
+                    tab=self.tab_name,
+                )
+            )
+        if not self.address_is_valid():
+            self.errors.append(
+                RowError(
+                    row_number=self.index,
+                    field_name="address",
+                    field_value=self.address,
+                    tab=self.tab_name,
+                )
+            )
+        if not self.naf_code_is_valid():
+            self.errors.append(
+                RowError(
+                    row_number=self.index,
+                    field_name="code naf",
+                    field_value=self.codeNaf,
+                    tab=self.tab_name,
+                )
+            )
+        if not self.code_commune_is_valid():
+            self.errors.append(
+                RowError(
+                    row_number=self.index,
+                    field_name="code commune",
+                    field_value=self.codeCommune,
+                    tab=self.tab_name,
+                )
+            )
+        self.validated = True
+
+    def as_csv(self):
+        quoted = [
+            quote(self.siret),
+            quote(self.name),
+            quote(self.address),
+            quote(self.codeNaf),
+            quote(self.codeCommune),
+        ]
+        return format_csv_row(quoted)
+
+
+@attr.s()
+class AnonymousEtabRows(BaseRows):
+    header = attr.ib(default="")
+    rows = attr.ib(default=attr.Factory(list))
+    is_valid = attr.ib(default=False)
+
+    def append(self, row):
+        if not self.header:
+            self.header = row
+        else:
+            self.rows.append(row)
+
+    def validate(self):
+        self.is_valid = True
+        for row in self:
+            row.validate()
+            if not row.is_valid:
+                self.is_valid = False
+
+    def as_csv(self):
+        ret = []
+        ret.append(format_csv_row([quote(fn) for fn in ANONYMOUS_ETABLISSMENTS_FIELDS]))
+        for row in self:
+            ret.append(row.as_csv())
+        return ret
+
+    def make_messages(self):
+        for row in self.rows:
+            for e in row.errors:
+                console.print(e.as_message())
+        for e in getattr(self, "errors", []):
+            console.print(e.as_message())
+
+    @classmethod
+    def from_worksheet(cls, worksheet):
+        etab_rows = []
+        idx = 1
+        for row in worksheet.iter_rows(min_row=MIN_ETAB_ROW, max_col=MAX_ANON_ETAB_COL):
+            data = dict_read(row, ANONYMOUS_ETABLISSMENTS_FIELDS)
+            if idx != 1:
+                etab_row = AnonymousEtabRow.from_dict(idx, data)
+
+                if etab_row:
+                    etab_rows.append(etab_row)
+            idx += 1
+        return cls(rows=etab_rows)
 
 
 @attr.s()
@@ -433,7 +576,6 @@ class RoleRows(BaseRows):
         for idx, pair in enumerate(pairs):
 
             if pair in seen:
-
                 duplicates_idx.append(idx)
                 self.rows[idx].mark_as_duplicate()
 
