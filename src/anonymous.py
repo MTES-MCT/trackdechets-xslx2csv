@@ -2,8 +2,6 @@ import io
 from pathlib import Path
 
 import click
-from InquirerPy import inquirer
-from InquirerPy.base.control import Choice
 from openpyxl import load_workbook
 from rich.console import Console, Group
 from rich.padding import Padding
@@ -37,20 +35,51 @@ class RichHelp(click.Command):
 @click.command(cls=RichHelp, context_settings=CONTEXT_SETTINGS)
 @click.argument("file", default="file.xlsx")
 def parse_validate_convert(file):
+    export_file_name = "anonymous.csv"
     wb = load_xlsx(file)
     ws_etablissements = wb.worksheets[0]
 
-    etab_rows = AnonymousEtabRows.from_worksheet(ws_etablissements)
-    etab_rows.validate()
+    anon_rows = AnonymousEtabRows.from_worksheet(ws_etablissements)
+    anon_rows.validate()
 
-    if not etab_rows.is_valid:
-        etab_rows.make_messages()
-        print("error")
+    if not anon_rows.is_valid:
+        console.print()
+        console.print(
+            Padding(
+                ":thumbs_down: [red]This file as errors and can't be imported",
+                (1, 0),
+            ),
+        )
+        anon_rows.make_messages()
         return
 
-    with open("anonymous.csv", "w", newline="") as csvfile:
-        for row in etab_rows.as_csv():
+    current_path = Path(".")
+    console.print(":weight_lifter:[green] Exporting")
+    csv_dir = current_path / "csv"
+    csv_dir.mkdir(exist_ok=True)
+    with open(f"csv/{export_file_name}", "w", newline="") as csvfile:
+        for row in anon_rows.as_csv():
             csvfile.write(row)
+
+    console.print(f":thumbs_up:[green] Done - Your file is ./csv/{export_file_name}")
+
+    panel_group = Group(
+        Padding(
+            f"[green] scalingo --app trackdechets-production-api run --file ./csv/{export_file_name} bash",
+            (1, 4),
+        ),
+        Padding("[yellow] then : ", (1, 0)),
+        Padding(
+            f"[green] node ./dist/src/scripts/bin/importAnonymousCompany.js /tmp/uploads/{export_file_name}",
+            (1, 4),
+        ),
+    )
+    console.print(
+        Panel(
+            panel_group,
+            title="[bold green]Now you may run these commands to import csv",
+        )
+    )
 
 
 if __name__ == "__main__":

@@ -147,7 +147,7 @@ def parse_validate_convert(file):
 
         panel_group = Group(
             Padding(
-                "[green] scalingo --app trackdechets-production-api run --file ~/Desktop/csv bash",
+                "[green] scalingo --app trackdechets-production-api run --file ./csv bash",
                 (1, 4),
             ),
             Padding("[yellow] then : ", (1, 0)),
