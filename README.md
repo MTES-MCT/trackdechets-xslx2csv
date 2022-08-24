@@ -26,7 +26,7 @@ Activer votre environnement
 
     poetry shell
 
-## Utilisation
+## Validation et transformation de fichiers d'import en masse
 
     python xlsx2csv.py path/to/somefile.xlsx
 
@@ -37,6 +37,14 @@ Par défaut
 Cherchera un fichier file.xlsx dans xlsx2csv/src/
 
 En cas de validation réussie, le menu  propose d'exporter les fichiers csv qui seront créés dans  xlsx2csv/src/csv/
+
+
+## Validation et transformation de fichiers d'entreprise anonymes
+
+    python anonymous.py path/to/somefile.xlsx
+
+ 
+
 
 ### Aide
 
