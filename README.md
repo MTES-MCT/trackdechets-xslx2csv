@@ -9,7 +9,7 @@ Lit, valide et transforme un fichier xlsx en 2 fichiers csv prêts à importer d
 ### Pré-requis
 
 - Python 3.9 est requis. (Pour gérer plusieurs versions de python [pyenv](https://github.com/pyenv/pyenv) est recommandé)
-- [Poetry](https://python-poetry.org)
+- [Pipenv](https://pypi.org/project/pipenv/)
 - alternativement vous pouvez utiliser pip pour installer les quelques dépendances listées dans pyproject.toml
 
 ### Installation
@@ -20,11 +20,11 @@ Cloner le projet et installer les dépendances
 
     cd xlsx2csv
 
-    poetry install
+    pipenv install
 
 Activer votre environnement
 
-    poetry shell
+    pipenv shell
 
 ## Utilisation
 
@@ -47,7 +47,7 @@ En cas de validation réussie, le menu  propose d'exporter les fichiers csv qui 
 
 ```
 docker build -t trackdechets-xslx2csv
-docker run -it -v /path/to/trackdechets-xslx2csv/src:/app/src trackdechets-xslx2csv bash
-poetry shell
-python xlsx2csv.py path/to/somefile.xlsx
+docker run -it -v ${pwd}/src:/app/src trackdechets-xslx2csv bash
+pipenv shell
+python src/xlsx2csv.py path/to/somefile.xlsx
 ```
