@@ -1,20 +1,15 @@
 ETABLISSMENTS_FIELDS = [
     "siret",
-    "gerepid",
+    "gerepId",
     "companyTypes",
     "givenName",
     "contactEmail",
     "contactPhone",
-    "webSite",
+    "contact",
+    "website",
 ]
 
-ANONYMOUS_ETABLISSMENTS_FIELDS = [
-    "siret",
-    "name",
-    "address",
-    "codeNaf",
-    "codeCommune",
-]
+
 ROLE_FIELDS = [
     "siret",
     "email",
@@ -32,6 +27,13 @@ COMPANY_TYPES = [
     "ECO_ORGANISME",
 ]
 
+ANONYMOUS_ETABLISSMENTS_FIELDS = [
+    "siret",
+    "name",
+    "address",
+    "codeNaf",
+    "codeCommune",
+]
 MIN_ETAB_ROW = 1
 MAX_ETAB_COL = 7
 MIN_ROLE_ROW = 1

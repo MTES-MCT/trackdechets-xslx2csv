@@ -9,6 +9,7 @@ from rich.console import Console, Group
 from rich.padding import Padding
 from rich.panel import Panel
 
+from core.constants import ETABLISSMENTS_FIELDS, ROLE_FIELDS
 from core.models import EtabRows, RoleRows
 
 console = Console()
@@ -65,6 +66,18 @@ help_txt = """
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 
+class InvalidHeaderException(Exception):
+    pass
+
+
+def validate_header(first_row, expected_header):
+    """Validate first worksheet row matches `expected_header`"""
+
+    header = [cell.value for cell in first_row]
+    if header != expected_header:
+        raise InvalidHeaderException
+
+
 class RichHelp(click.Command):
     """Custom help formatter"""
 
@@ -82,6 +95,27 @@ def parse_validate_convert(file):
 
     ws_etablissements = wb.worksheets[0]
     ws_roles = wb.worksheets[1]
+
+    etab_first_row = ws_etablissements[1][: len(ETABLISSMENTS_FIELDS)]
+    role_first_row = ws_roles[1][: len(ROLE_FIELDS)]
+
+    try:
+        validate_header(etab_first_row, ETABLISSMENTS_FIELDS)
+
+    except InvalidHeaderException:
+
+        console.print(
+            ":thumbs_down: [red]Etablissement header does not match expected cells"
+        )
+        return
+
+    try:
+
+        validate_header(role_first_row, ROLE_FIELDS)
+    except InvalidHeaderException:
+
+        console.print(":thumbs_down: [red]Role header does not match expected cells")
+        return
 
     etab_rows = EtabRows.from_worksheet(ws_etablissements)
 
