@@ -263,11 +263,12 @@ class AnonymousEtabRows(BaseRows):
 class EtabRow(BaseRow):
     index = attr.ib()
     siret = attr.ib(default="")
-    gerepid = attr.ib(default="")
+    gerepId = attr.ib(default="")
     companyTypes = attr.ib(default=attr.Factory(list))
     givenName = attr.ib(default="")
     contactEmail = attr.ib(default="")
     contactPhone = attr.ib(default="")
+    contact = attr.ib(default="")
     webSite = attr.ib(default="")
 
     errors = attr.ib(default=attr.Factory(list))
@@ -281,11 +282,12 @@ class EtabRow(BaseRow):
         return [
             str(self.index),
             self.siret,
-            self.gerepid,
+            self.gerepId,
             ",".join(self.companyTypes),
             self.givenName,
             self.contactEmail,
             self.contactPhone,
+            self.contact,
             self.webSite,
             ERROR_STR if not self.is_valid else VALID_STR,
         ]
@@ -294,11 +296,12 @@ class EtabRow(BaseRow):
 
         quoted = [
             quote(self.siret),
-            quote(self.gerepid),
+            quote(self.gerepId),
             ",".join(self.companyTypes),
             quote(self.givenName),
             quote(self.contactEmail),
             quote(self.contactPhone),
+            quote(self.contact),
             quote(self.webSite),
         ]
         return format_csv_row(quoted)
