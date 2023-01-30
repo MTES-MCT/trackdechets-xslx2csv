@@ -54,7 +54,7 @@ En cas de validation réussie, le menu  propose d'exporter les fichiers csv qui 
 ## Docker
 
 ```
-docker build -t trackdechets-xslx2csv
+docker build -t trackdechets-xslx2csv .
 docker run -it -v ${pwd}/src:/app/src trackdechets-xslx2csv bash
 pipenv shell
 python src/xlsx2csv.py path/to/somefile.xlsx
