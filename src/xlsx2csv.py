@@ -188,12 +188,12 @@ def parse_validate_convert(file):
             Padding("[green] tar -C /tmp -xvf /tmp/uploads/csv.tar.gz", (1, 4)),
             Padding("[and] and : ", (1, 0)),
             Padding(
-                "[green] node ./dist/src/users/bulk-creation/index.js --validateOnly --csvDir=/tmp/",
+                "[green] tsx --tsconfig back/tsconfig.lib.json back/src/users/bulk-creation/index.ts --validateOnly --csvDir=/tmp/",
                 (1, 4),
             ),
             Padding("[or] and : ", (1, 0)),
             Padding(
-                "[green] node ./dist/src/users/bulk-creation/index.js --csvDir=/tmp/",
+                "[green] tsx --tsconfig back/tsconfig.lib.json back/src/users/bulk-creation/index.ts --csvDir=/tmp/",
                 (1, 4),
             ),
         )
