@@ -8,6 +8,7 @@ from rich.table import Table
 from .communes import CODE_COMUNES
 from .constants import (
     ANONYMOUS_ETABLISSMENTS_FIELDS,
+    COLLECTOR_TYPES,
     COMPANY_TYPES,
     ERROR_STR,
     ETABLISSMENTS_FIELDS,
@@ -18,6 +19,8 @@ from .constants import (
     MIN_ROLE_ROW,
     ROLE_FIELDS,
     VALID_STR,
+    WASTE_PROCESSOR_TYPES,
+    WASTE_VEHICLE_TYPES,
 )
 from .helpers import dict_read, format_csv_row, quote
 from .naf import NAF_CODES
@@ -256,6 +259,7 @@ class AnonymousEtabRows(BaseRows):
                 if etab_row:
                     etab_rows.append(etab_row)
             idx += 1
+
         return cls(rows=etab_rows)
 
 
@@ -265,11 +269,14 @@ class EtabRow(BaseRow):
     siret = attr.ib(default="")
     gerepId = attr.ib(default="")
     companyTypes = attr.ib(default=attr.Factory(list))
+    collectorTypes = attr.ib(default=attr.Factory(list))
+    wasteProcessorTypes = attr.ib(default=attr.Factory(list))
+    wasteVehiclesTypes = attr.ib(default=attr.Factory(list))
     givenName = attr.ib(default="")
     contactEmail = attr.ib(default="")
     contactPhone = attr.ib(default="")
     contact = attr.ib(default="")
-    webSite = attr.ib(default="")
+    website = attr.ib(default="")
 
     errors = attr.ib(default=attr.Factory(list))
     validated = attr.ib(default=False)
@@ -284,11 +291,14 @@ class EtabRow(BaseRow):
             self.siret,
             self.gerepId,
             ",".join(self.companyTypes),
+            ",".join(self.collectorTypes or []),
+            ",".join(self.wasteProcessorTypes or []),
+            ",".join(self.wasteVehiclesTypes or []),
             self.givenName,
             self.contactEmail,
             self.contactPhone,
             self.contact,
-            self.webSite,
+            self.website,
             ERROR_STR if not self.is_valid else VALID_STR,
         ]
 
@@ -298,16 +308,47 @@ class EtabRow(BaseRow):
             quote(self.siret),
             quote(self.gerepId),
             ",".join(self.companyTypes),
+            ",".join(self.collectorTypes or []),
+            ",".join(self.wasteProcessorTypes or []),
+            ",".join(self.wasteVehiclesTypes or []),
             quote(self.givenName),
             quote(self.contactEmail),
             quote(self.contactPhone),
             quote(self.contact),
-            quote(self.webSite),
+            quote(self.website),
         ]
         return format_csv_row(quoted)
 
     def company_types_are_valid(self):
+        if not self.companyTypes:
+            return False
         return all([c_type in COMPANY_TYPES for c_type in self.companyTypes])
+
+    def collector_types_are_valid(self):
+        if not self.collectorTypes:
+            return True
+        if "COLLECTOR" not in self.companyTypes:
+            return False
+        return all([c_type in COLLECTOR_TYPES for c_type in self.collectorTypes])
+
+    def waste_processor_types_are_valid(self):
+        if not self.wasteProcessorTypes:
+            return True
+        if "WASTEPROCESSOR" not in self.companyTypes:
+            return False
+
+        return all(
+            [c_type in WASTE_PROCESSOR_TYPES for c_type in self.wasteProcessorTypes]
+        )
+
+    def waste_vehicle_types_are_valid(self):
+        if not self.wasteVehiclesTypes:
+            return True
+        if "WASTE_VEHICLES" not in self.companyTypes:
+            return False
+        return all(
+            [c_type in WASTE_VEHICLE_TYPES for c_type in self.wasteVehiclesTypes]
+        )
 
     def phone_number_is_valid(self):
         if not self.contactPhone:
@@ -345,6 +386,33 @@ class EtabRow(BaseRow):
                     row_number=self.index,
                     field_name="companyTypes",
                     field_value=self.companyTypes,
+                    tab=self.tab_name,
+                )
+            )
+        if not self.collector_types_are_valid():
+            self.errors.append(
+                RowError(
+                    row_number=self.index,
+                    field_name="collectorTypes",
+                    field_value=self.collectorTypes,
+                    tab=self.tab_name,
+                )
+            )
+        if not self.waste_processor_types_are_valid():
+            self.errors.append(
+                RowError(
+                    row_number=self.index,
+                    field_name="wasteProcessorTypes",
+                    field_value=self.wasteProcessorTypes,
+                    tab=self.tab_name,
+                )
+            )
+        if not self.waste_vehicle_types_are_valid():
+            self.errors.append(
+                RowError(
+                    row_number=self.index,
+                    field_name="wasteVehiclesTypes",
+                    field_value=self.wasteVehiclesTypes,
                     tab=self.tab_name,
                 )
             )
@@ -432,6 +500,7 @@ class EtabRows(BaseRows):
         idx = 1
         for row in worksheet.iter_rows(min_row=MIN_ETAB_ROW, max_col=MAX_ETAB_COL):
             data = dict_read(row, ETABLISSMENTS_FIELDS)
+
             if idx != 1:
                 etab_row = EtabRow.from_dict(idx, data)
 

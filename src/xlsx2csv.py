@@ -204,7 +204,6 @@ def parse_validate_convert(file):
             )
         )
 
-        # console.print(Panel("Hello, [red]World!"))
     console.print(":wave:[green] Exiting")
 
 
