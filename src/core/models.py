@@ -463,6 +463,7 @@ class EtabRows(BaseRows):
             self.rows.append(row)
 
     def sirets(self):
+
         return list(set([row.siret for row in self if row.siret and row.is_valid]))
 
     def validate(self):

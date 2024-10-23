@@ -1,6 +1,8 @@
 import os
 from itertools import islice
 
+from .constants import TYPES_FIELDS
+
 
 def quote(v):
     """Let's double quote all the things"""
@@ -44,7 +46,7 @@ def process_field(value, field_name):
         if len(cleaned) == 9 and not cleaned.startswith("0"):
             cleaned = f"0{cleaned}"
         return phone_formatter(cleaned)
-    if field_name == "companyTypes":
+    if field_name in TYPES_FIELDS:
         return value.replace(" ", "").upper().split(",")
     if field_name in ["email", "contactEmail"]:
         return str(value).replace(" ", "").strip().lower()
